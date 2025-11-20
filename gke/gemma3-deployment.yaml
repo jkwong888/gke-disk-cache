@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma3-vllm
+spec:
+  selector:
+    matchLabels:
+      app: gemma3-vllm
+  template:
+    metadata:
+      labels:
+        app: gemma3-vllm
+    spec:
+      nodeSelector:
+        cloud.google.com/compute-class: gemma3-inf-nodes
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+        - name: vllm
+          tty: true
+          stdin: true
+          command:
+          - python3
+          - -m
+          - vllm.entrypoints.openai.api_server
+          - --port=$(PORT)
+          - --model=$(HF_HOME)/$(MODEL_NAME)
+          - --gpu-memory-utilization
+          - '0.95'
+          - --max-num-seqs
+          - '4'
+          - --max-model-len
+          - '40000'
+          # - --model=$(MODEL_NAME)
+          env:
+          # - name: VLLM_LOGGING_LEVEL
+          #   value: DEBUG
+          # - name: HUGGING_FACE_HUB_TOKEN
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: hf-token
+          #       key: token
+          - name: LD_LIBRARY_PATH
+            value: "/usr/local/nvidia/lib64:/usr/local/lib/"
+          - name: HF_HUB_OFFLINE
+            value: "1"
+          - name: PORT
+            value: "8000"
+          - name: MODEL_NAME
+            value: google/gemma-3-4b-it
+          - name: HF_HOME  
+            value: /opt/model-data/models
+          # - name: VLLM_CACHE_ROOT
+          #   value: /opt/model-data/cache
+          image: vllm/vllm-openai:v0.11.0
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 10 
+            successThreshold: 1
+            timeoutSeconds: 2
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: "8"
+              memory: 30Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: 30Gi
+              nvidia.com/gpu: "1"
+          volumeMounts:
+          - name: library-dir-host
+            mountPath: /usr/local/nvidia
+          - name: dshm
+            mountPath: /dev/shm
+          - name: model-data
+            mountPath: /opt/model-data
+      volumes:  
+      - name: library-dir-host  # use the nvidia drivers installed in the host
+        hostPath:
+          path: /home/kubernetes/bin/nvidia
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: model-data
+        hostPath:
+          path: /mnt/disks/gke-secondary-disks/gke-model-data-1763562407-disk
+          type: Directory
+
+

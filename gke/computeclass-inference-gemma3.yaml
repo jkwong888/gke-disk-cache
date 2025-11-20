@@ -1,0 +1,54 @@
+# define a compute class for training workloads
+# we can run our training jobs on A100 80GB or H100 80GB, prefer the lowest cost for this compute class
+# so spot nodes first, then DWS
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gemma3-inf-nodes
+spec:
+  nodePoolAutoCreation:
+    enabled: true
+  # activeMigration:
+  #   optimizeRulePriority: true
+  autoscalingPolicy:
+    consolidationDelayMinutes: 2    # wait two minutes before we clean underutilized nodes
+  # nodePoolConfig:
+  #   serviceAccount: kueue-dev-sa@jkwng-kueue-dev.iam.gserviceaccount.com
+  priorities:
+  - machineType: g2-standard-8
+    gpu:
+      count: 1
+      type: nvidia-l4
+    # flexStart:
+    #   enabled: true
+    #   nodeRecycling:
+    #     leadTimeSeconds: 3600       # create a new node 1 hour before existing nodes expire
+    storage:
+      bootDiskSize: 100
+      bootDiskType: pd-balanced
+      secondaryBootDisks:
+      - diskImageName: image-disk-1763561035
+        project: jkwng-kueue-dev
+        mode: CONTAINER_IMAGE_CACHE
+      - diskImageName: model-data-1763562407
+        project: jkwng-kueue-dev
+        mode: MODE_UNSPECIFIED
+  - machineType: a2-highgpu-1g
+    gpu:
+      count: 1
+      type: nvidia-tesla-a100
+    flexStart:
+      enabled: true
+      nodeRecycling:
+        leadTimeSeconds: 3600       # create a new node 1 hour before existing nodes expire
+    storage:
+      bootDiskSize: 100
+      bootDiskType: pd-balanced
+      secondaryBootDisks:
+      - diskImageName: image-disk-1763561035
+        project: jkwng-kueue-dev
+        mode: CONTAINER_IMAGE_CACHE
+      - diskImageName: model-data-1763562407
+        project: jkwng-kueue-dev
+        mode: MODE_UNSPECIFIED
+  whenUnsatisfiable: DoNotScaleUp   # if pod cannot be satisfied by any of the above, leave the pod pending
