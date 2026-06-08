@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gemma3-vllm
+  name: gemma4-vllm
 spec:
   selector:
     matchLabels:
-      app: gemma3-vllm
+      app: gemma4-vllm
   template:
     metadata:
       labels:
-        app: gemma3-vllm
+        app: gemma4-vllm
     spec:
       runtimeClassName: gvisor
       nodeSelector:
-        cloud.google.com/compute-class: gemma3-inf-nodes
+        cloud.google.com/compute-class: gemma4-inf-nodes
       tolerations:
       - key: "nvidia.com/gpu"
         operator: "Exists"
@@ -22,24 +22,21 @@ spec:
         - name: vllm
           tty: true
           stdin: true
-          command:
-          - python3
-          - -m
-          - vllm.entrypoints.openai.api_server
           args:
-          - --model=$(MODEL_NAME)
+          - $(MODEL_NAME)
+          - --served-model-name=google/gemma-4-31B-it
           - --load-format=runai_streamer
           - --model-loader-extra-config={"distributed":true}
           - --host=0.0.0.0
           - --port=$(PORT)
-          - --disable-log-requests
-          - --tensor-parallel-size=1 
-          - --gpu-memory-utilization
-          - '0.95'
-          - --max-num-seqs
-          - '4'
+          # - --no-enable-log-requests
+          # - --tensor-parallel-size=1 
+          # - --gpu-memory-utilization
+          # - '0.95'
+          # - --max-num-seqs
+          # - '4'
           - --max-model-len
-          - '40000'
+          - '200000'
           env:
           # - name: VLLM_LOGGING_LEVEL
           #   value: DEBUG
@@ -48,21 +45,24 @@ spec:
           #     secretKeyRef:
           #       name: hf-token
           #       key: token
-          - name: LD_LIBRARY_PATH
-            value: "/usr/local/nvidia/lib64:/usr/local/lib/"
-          - name: HF_HUB_OFFLINE
-            value: "1"
+          # - name: LD_LIBRARY_PATH
+          #   value: "/usr/local/nvidia/lib64:/usr/local/lib/"
+          # - name: HF_HUB_OFFLINE
+          #   value: "1"
           - name: PORT
             value: "8000"
           - name: MODEL_NAME
             # value: google/gemma-3-4b-it
-            value: gs://jkwng-model-data/model-data/google/gemma-3-4b-it
-          - name: HF_HOME  
-            value: /opt/model-data/models
+            value: gs://jkwng-model-data/models/google/gemma-4-31B-it
+          - name: GCE_METADATA_TLS_MODE
+            value: none
+          - name: GOOGLE_CLOUD_PROJECT
+            value: jkwng-kueue-dev
+          # - name: HF_HOME  
+          #   value: /opt/model-data/models
           # - name: VLLM_CACHE_ROOT
           #   value: /opt/model-data/cache
-          # image: vllm/vllm-openai:v0.11.0
-          image: vllm/vllm-openai:latest
+          image: vllm/vllm-openai:v0.20.0
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -92,23 +92,21 @@ spec:
               memory: 30Gi
               nvidia.com/gpu: "1"
             limits:
-              cpu: "8"
-              memory: 30Gi
               nvidia.com/gpu: "1"
-          volumeMounts:
-          - name: library-dir-host
-            mountPath: /usr/local/nvidia
-          - name: dshm
-            mountPath: /dev/shm
+          # volumeMounts:
+          # - name: library-dir-host
+          #   mountPath: /usr/local/nvidia
+          # - name: dshm
+            # mountPath: /dev/shm
           # - name: model-data
           #   mountPath: /opt/model-data
-      volumes:  
-      - name: library-dir-host  # use the nvidia drivers installed in the host
-        hostPath:
-          path: /home/kubernetes/bin/nvidia
-      - name: dshm
-        emptyDir:
-          medium: Memory
+      # volumes:  
+      # - name: library-dir-host  # use the nvidia drivers installed in the host
+      #   hostPath:
+      #     path: /home/kubernetes/bin/nvidia
+      # - name: dshm
+        # emptyDir:
+          # medium: Memory
       # - name: model-data
       #   hostPath:
       #     path: /mnt/disks/gke-secondary-disks/gke-model-data-1763562407-disk

@@ -13,6 +13,10 @@ source .venv/bin/activate
 echo "installing huggingface CLI ..."
 pip install huggingface-hub[cli]
 
+if [ ! -e ${MOUNT_PATH}/${MODEL_PREFIX} ]; then
+    mkdir -p ${MOUNT_PATH}/${MODEL_PREFIX}
+fi
+
 export HF_TOKEN=$(gcloud secrets versions access latest --secret=hf_token --project=jkwng-vertex-playground)
 
 for MODEL_ID in ${MODELS}; do

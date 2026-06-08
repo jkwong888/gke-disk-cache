@@ -72,7 +72,7 @@ build {
       "MOUNT_PATH=${var.mount_path}",
       "DISK_NAME=${var.disk_name}"
     ]
-    script = "./common/prepare_disk.sh"
+    script = "../common/prepare_disk.sh"
   }
 
   # download the models
@@ -83,7 +83,7 @@ build {
       "MODELS=${join(" ", var.models)}",
     ]
 
-    script = "./common/download_model.sh"
+    script = "../common/download_model.sh"
   }
 
 

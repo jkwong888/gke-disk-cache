@@ -1,0 +1,10 @@
+apiVersion: podsnapshot.gke.io/v1alpha1
+kind: PodSnapshotStorageConfig
+metadata:
+  name: pod-snapshot-model-storage
+spec:
+  snapshotStorageConfig:
+    gcs:
+      bucket: jkwng-model-data
+      path: pod-snapshots
+      # tokenSource: podKSA

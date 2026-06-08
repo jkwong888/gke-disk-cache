@@ -2,11 +2,7 @@ project_id = "jkwng-kueue-dev"
 zone       = "us-central1-c"
 network = "projects/jkwng-nonprod-vpc/global/networks/shared-vpc-nonprod-1"
 subnetwork = "projects/jkwng-nonprod-vpc/regions/us-central1/subnetworks/kueue-dev"
-network_project_id = "jkwng-nonprod-vpc"
 models     = [
-    # "nvidia/MiniMax-M2.7-NVFP4",
-    "nvidia/Gemma-4-31B-IT-NVFP4",
+    "google/gemma-3-4b-it",
 ]
 disk_name = "model-data"
-gcs_bucket = "jkwng-model-data"
-gcs_prefix = "models"

@@ -14,15 +14,14 @@ source "googlecompute" "model-data-build" {
   zone                        = var.zone
   ssh_username                = "packer"
   tags                        = ["packer"]
-  # machine_type                = "g2-standard-4"
   machine_type                = "e2-standard-8"
-  # preemptible                 = true
-  # on_host_maintenance         = "TERMINATE"
+  # Disabling preemption for the model download/upload to avoid interruptions 
+  # during the large (~60GB+) file transfers.
+  preemptible                 = false
 
   disk_type                   = "pd-balanced"
-  disk_size                   = 100
+  disk_size                   = var.disk_size
   skip_create_image           = true
-#   impersonate_service_account = var.builder_sa
 
   scopes = [
     "https://www.googleapis.com/auth/cloud-platform"
@@ -34,64 +33,35 @@ source "googlecompute" "model-data-build" {
 
   network = var.network
   subnetwork = var.subnetwork
+  network_project_id = var.network_project_id
 
 }
 
 build {
   sources = ["sources.googlecompute.model-data-build"]
 
-  # # needs a reboot after installing dependencies
-  # provisioner "shell" {
-  #   script = "../common/install_nvidia_driver.sh"
-  #   expect_disconnect = true
-  #   pause_after = "45s"
-  # }
-
-  # # doesn't need a reboot after installing driver
-  # provisioner "shell" {
-  #   script = "../common/install_nvidia_driver.sh"
-  #   expect_disconnect = true
-  #   pause_after = "5s"
-  # }
-
-  # # needs a reboot after cuda install
-  # provisioner "shell" {
-  #   script = "../common/install_cuda.sh"
-  #   expect_disconnect = true
-  #   pause_after = "45s"
-  # }
-
-  # prepare the model disk
-  # provisioner "shell" {
-  #   environment_vars = [
-  #     "MOUNT_PATH=${var.mount_path}",
-  #     "DISK_NAME=${var.disk_name}"
-  #   ]
-  #   script = "../common/prepare_disk.sh"
-  # }
-
-  # download the models
   provisioner "shell" {
-    environment_vars = [ 
-      "MOUNT_PATH=${var.mount_path}",
-      "MODEL_PREFIX=models",
-      "MODELS=${join(" ", var.models)}",
+    inline = [
+      "curl -LsSf https://astral.sh/uv/install.sh | sh",
+      "echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.bashrc",
     ]
-
-    script = "../common/download_model.sh"
   }
 
-  # upload the models
+  provisioner "file" {
+    source      = "download_weights_to_gcs.sh"
+    destination = "/tmp/download_weights_to_gcs.sh"
+  }
+
   provisioner "shell" {
-    environment_vars = [ 
-      "MOUNT_PATH=${var.mount_path}",
-      "MODEL_PREFIX=models",
+    environment_vars = [
       "MODELS=${join(" ", var.models)}",
       "GCS_BUCKET=${var.gcs_bucket}",
       "GCS_PREFIX=${var.gcs_prefix}",
+      "HF_TOKEN=${var.hf_token}",
     ]
-
-    script = "../common/upload_model.sh"
+    inline = [
+      "chmod +x /tmp/download_weights_to_gcs.sh",
+      "/tmp/download_weights_to_gcs.sh"
+    ]
   }
-
 }

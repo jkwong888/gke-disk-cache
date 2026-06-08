@@ -1,0 +1,15 @@
+apiVersion: podsnapshot.gke.io/v1alpha1
+kind: PodSnapshotPolicy
+metadata:
+  name: pod-snapshot-model-policy
+  namespace: default
+spec:
+  storageConfigName: pod-snapshot-model-storage
+  selector:
+    matchLabels:
+      app: gemma4-vllm
+  triggerConfig:
+    type: manual
+    postCheckpoint: resume
+  retentionConfig:
+    lastAccessTimeout: 7d

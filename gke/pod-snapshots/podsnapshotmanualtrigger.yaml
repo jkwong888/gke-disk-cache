@@ -1,0 +1,7 @@
+apiVersion: podsnapshot.gke.io/v1alpha1
+kind: PodSnapshotManualTrigger
+metadata:
+  name: gemma4-vllm-snapshot-trigger
+  namespace: default
+spec:
+  targetPod: gemma4-vllm-6949f6b745-5nfdk

@@ -10,20 +10,6 @@ variable "zone" {
 variable "network" {}
 variable "subnetwork" {}
 
-variable "network_project_id" {
-  type = string
-}
-
-variable "hf_token" {
-  type    = string
-  default = ""
-}
-
-variable "disk_size" {
-  type    = number
-  default = 100
-}
-
 # variable "builder_sa" {
 #   type = string
 # }
@@ -35,19 +21,11 @@ variable "disk_name" {
 
 variable "mount_path" {
     type = string
-    default = "/tmp"
+    default = "/mnt/disks"
 }
 
 variable "models" {
     type = list(string)
-}
-
-variable "gcs_bucket" {
-    type = string
-}
-
-variable "gcs_prefix" {
-    type = string
 }
 
 
